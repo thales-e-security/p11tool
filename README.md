@@ -40,3 +40,23 @@ go install .
 ## Usage
 
 Run `p11tool --help` to see available commands. Run `p11tool <command> --help` for help on individual commands.
+
+Supported functionality:
+
+- Print the attributes of all objects on the token. Optionally restricted to objects with a given label.
+- Delete all objects from the token. Optionally retain objects with the specified label(s).
+- Import a plaintext AES key.
+- Calculate a checksum for an AES key.
+
+The token user PIN can be supplied as a command line argument or omitted, in which case it will be prompted for in the
+terminal. 
+
+## Contributions
+
+Contributions are very welcome. Either raise a pull request or open an issue to discuss a new feature. Here are some
+of the things we'd like to add or improve:
+
+- [ ] Printing nested templates (i.e. `CKA_WRAP_TEMPLATE` and `CKA_UNWRAP_TEMPLATE`).
+- [ ] Generating test keys (at least RSA and AES).
+- [ ] Encryption, signing and verifying of test data using token keys.
+- [ ] Reading of library path, token name and PIN from a config file.

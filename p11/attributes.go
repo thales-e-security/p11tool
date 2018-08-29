@@ -249,6 +249,9 @@ func mechArrayToStr(value []byte) string {
 }
 
 func dateToStr(value []byte) string {
+	if 8 != len(value) {
+		return fmt.Sprintf("<malformed date: 0x%x (%d bytes)>", value, len(value))
+	}
 	return fmt.Sprintf("%s-%s-%s", string(value[:4]), string(value[4:6]), string(value[6:]))
 }
 

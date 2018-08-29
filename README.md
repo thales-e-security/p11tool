@@ -15,7 +15,7 @@ COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER I
 OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 -->
 
-# p11tool [![Build Status](https://travis-ci.com/thales-e-security/p11tool.svg?branch=master)](https://travis-ci.com/thales-e-security/p11tool)
+# p11tool [![Build Status](https://travis-ci.com/thales-e-security/p11tool.svg?branch=master)](https://travis-ci.com/thales-e-security/p11tool) [![Go Report Card](https://goreportcard.com/badge/github.com/thales-e-security/p11tool)](https://goreportcard.com/report/github.com/thales-e-security/p11tool)
 
 A command line tool for interacting with [PKCS&nbsp;#11 tokens](https://en.wikipedia.org/wiki/PKCS_11). The intended 
 audience is developers writing PKCS&nbsp;#11 applications who need to inspect objects, import test keys, delete 

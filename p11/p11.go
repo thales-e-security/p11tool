@@ -41,6 +41,8 @@ type TokenCtx interface {
 	Login(sh pkcs11.SessionHandle, userType uint, pin string) error
 	OpenSession(slotID uint, flags uint) (pkcs11.SessionHandle, error)
 }
+
+// Token provides a high level interface to a P11 token.
 type Token interface {
 	// Checksum calculates a checksum value for an AES key. A block of zeroes is encrypted in CBC-mode with a zero IV.
 	Checksum(keyLabel string) ([]byte, error)

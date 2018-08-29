@@ -25,15 +25,15 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 )
 
-var P11Lib string
-var P11TokenLabel string
-var P11Pin string
+var p11Lib string
+var p11TokenLabel string
+var p11Pin string
 
 var cfgFile string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "p11import",
+	Use:   "p11tool",
 	Short: "Utility for PKCS#11 tokens",
 	Long:  ``,
 }
@@ -48,9 +48,9 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVar(&P11Lib, "lib", "", "Path to PKCS#11 library [required]")
-	rootCmd.PersistentFlags().StringVar(&P11TokenLabel, "token", "", "Token label [required]")
-	rootCmd.PersistentFlags().StringVar(&P11Pin, "pin", "", "Token user PIN (insecure). To avoid "+
+	rootCmd.PersistentFlags().StringVar(&p11Lib, "lib", "", "Path to PKCS#11 library [required]")
+	rootCmd.PersistentFlags().StringVar(&p11TokenLabel, "token", "", "Token label [required]")
+	rootCmd.PersistentFlags().StringVar(&p11Pin, "pin", "", "Token user PIN (insecure). To avoid "+
 		"leaving PINs in your command history, omit this flag and enter the PIN when prompted.")
 	rootCmd.MarkPersistentFlagRequired("lib")
 	rootCmd.MarkPersistentFlagRequired("token")
@@ -60,7 +60,7 @@ func init() {
 // at the terminal.
 func getPIN(cmd *cobra.Command) string {
 	if cmd.Flags().Changed("pin") {
-		return P11Pin
+		return p11Pin
 	}
 
 	fmt.Print("Token user PIN: ")

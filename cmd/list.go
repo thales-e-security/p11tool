@@ -42,7 +42,7 @@ func doList(cmd *cobra.Command) {
 		labelToUse = &label
 	}
 
-	p11Token, err := p11.NewToken(P11Lib, P11TokenLabel, getPIN(cmd))
+	p11Token, err := p11.NewToken(p11Lib, p11TokenLabel, getPIN(cmd))
 	handleError(err)
 
 	defer p11Token.Finalise()

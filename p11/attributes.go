@@ -228,9 +228,9 @@ func mechToStr(value []byte) string {
 	str, err := mechToString(uint(val))
 	if err == nil {
 		return str
-	} else {
-		return unknownToStr(value)
 	}
+
+	return unknownToStr(value)
 }
 
 func mechArrayToStr(value []byte) string {

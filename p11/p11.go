@@ -203,6 +203,7 @@ func (p *p11Token) ImportKey(keyBytes []byte, label string) error {
 		pkcs11.NewAttribute(pkcs11.CKA_KEY_TYPE, pkcs11.CKK_AES),
 		pkcs11.NewAttribute(pkcs11.CKA_VALUE, keyBytes),
 		pkcs11.NewAttribute(pkcs11.CKA_UNWRAP, true),
+    pkcs11.NewAttribute(pkcs11.CKA_WRAP, true),
 		pkcs11.NewAttribute(pkcs11.CKA_SENSITIVE, true),
 		pkcs11.NewAttribute(pkcs11.CKA_TOKEN, true),
 		pkcs11.NewAttribute(pkcs11.CKA_LABEL, label),

@@ -34,6 +34,8 @@ type TokenCtx interface {
 	FindObjects(sh pkcs11.SessionHandle, max int) ([]pkcs11.ObjectHandle, bool, error)
 	FindObjectsFinal(sh pkcs11.SessionHandle) error
 	FindObjectsInit(sh pkcs11.SessionHandle, temp []*pkcs11.Attribute) error
+	GenerateKey(sh pkcs11.SessionHandle, m []*pkcs11.Mechanism, temp []*pkcs11.Attribute) (pkcs11.ObjectHandle, error)
+	GenerateKeyPair(sh pkcs11.SessionHandle, m []*pkcs11.Mechanism, public, private []*pkcs11.Attribute) (pkcs11.ObjectHandle, pkcs11.ObjectHandle, error)
 	GetAttributeValue(sh pkcs11.SessionHandle, o pkcs11.ObjectHandle, a []*pkcs11.Attribute) ([]*pkcs11.Attribute, error)
 	GetSlotList(tokenPresent bool) ([]uint, error)
 	GetTokenInfo(slotID uint) (pkcs11.TokenInfo, error)
@@ -56,6 +58,9 @@ type Token interface {
 	// PrintObjects prints all objects in the token if label is nil, otherwise it prints only the objects with that
 	// label
 	PrintObjects(label *string) error
+
+	// GenerateKey creates a new RSA or AES key of the given size in the token
+	GenerateKey(label, keytype *string, keysize int) error
 
 	// Finalise closes the library and unloads it.
 	Finalise() error
@@ -303,4 +308,114 @@ func (p *p11Token) PrintObjects(label *string) error {
 	}
 
 	return nil
+}
+
+func (p *p11Token) GenerateKey(label, keytype *string, keysize int) error {
+
+	validRSASize := []int{1024, 2048, 3072, 4096}
+	validAESSize := []int{128, 192, 256}
+	validKeyTypes := []string{"RSA", "AES"}
+
+	if (isValidKeyType(validKeyTypes, *keytype)) {
+		switch *keytype {
+		case "RSA":
+			if (isValidSize(validRSASize, keysize)) {
+				return p.GenerateRSAKey(label, keysize)
+			} else {
+				return errors.Errorf("Invalid RSA key size: %d", keysize)
+			}
+		case "AES":
+			if (isValidSize(validAESSize, keysize)) {
+				return p.GenerateAESKey(label, keysize)
+			} else {
+				return errors.Errorf("Invalid AES key size: %d", keysize)
+			}
+		}
+	} else {
+		return errors.Errorf("Invalid key type: %s", *keytype)
+	}
+
+
+	return nil
+}
+
+func (p *p11Token) GenerateAESKey(label *string, keysize int) error {
+
+	privateKeyTemplate := []*pkcs11.Attribute{
+		pkcs11.NewAttribute(pkcs11.CKA_TOKEN, true),
+		pkcs11.NewAttribute(pkcs11.CKA_SIGN, true),
+		pkcs11.NewAttribute(pkcs11.CKA_LABEL, *label),
+		pkcs11.NewAttribute(pkcs11.CKA_SENSITIVE, true),
+		pkcs11.NewAttribute(pkcs11.CKA_EXTRACTABLE, true),
+		pkcs11.NewAttribute(pkcs11.CKA_VALUE_LEN, keysize/8),
+	}
+
+	_, err := p.ctx.GenerateKey(p.session,
+		[]*pkcs11.Mechanism{pkcs11.NewMechanism(pkcs11.CKM_AES_KEY_GEN, make([]byte, 16))},
+		privateKeyTemplate)
+
+	if err != nil {
+		return err
+	}
+
+	log.Printf("Key \"%s\" generated on token", *label)
+
+	return nil
+}
+
+func (p *p11Token) GenerateRSAKey(label *string, keysize int) error {
+
+	pubLabel := *label + "pub"
+	prvLabel := *label + "prv"
+
+	log.Print("Enter GenerateRSAKey" )
+	publicKeyTemplate := []*pkcs11.Attribute{
+		pkcs11.NewAttribute(pkcs11.CKA_CLASS, pkcs11.CKO_PUBLIC_KEY),
+		pkcs11.NewAttribute(pkcs11.CKA_KEY_TYPE, pkcs11.CKK_RSA),
+		pkcs11.NewAttribute(pkcs11.CKA_TOKEN, true),
+		pkcs11.NewAttribute(pkcs11.CKA_VERIFY, true),
+		pkcs11.NewAttribute(pkcs11.CKA_PUBLIC_EXPONENT, []byte{1, 0, 1}),
+		pkcs11.NewAttribute(pkcs11.CKA_LABEL, pubLabel),
+		pkcs11.NewAttribute(pkcs11.CKA_MODULUS_BITS, keysize),
+	}
+
+	privateKeyTemplate := []*pkcs11.Attribute{
+		pkcs11.NewAttribute(pkcs11.CKA_EXTRACTABLE, true),
+		pkcs11.NewAttribute(pkcs11.CKA_TOKEN, true),
+		pkcs11.NewAttribute(pkcs11.CKA_SENSITIVE, true),
+		pkcs11.NewAttribute(pkcs11.CKA_SIGN, true),
+		pkcs11.NewAttribute(pkcs11.CKA_LABEL, prvLabel),
+	}
+
+	log.Print("Set attributes" )
+	_, _,  err := p.ctx.GenerateKeyPair(p.session,
+		[]*pkcs11.Mechanism{pkcs11.NewMechanism(pkcs11.CKM_RSA_PKCS_KEY_PAIR_GEN, nil)},
+		publicKeyTemplate, privateKeyTemplate)
+	log.Print("Called GenerateKeyPair" )
+
+	if err != nil {
+		return err
+	}
+
+	log.Printf("Keypair \"%s\" and \"%s\" generated on token", pubLabel, prvLabel)
+
+	return nil
+}
+
+func isValidSize(sizes []int, in int) bool {
+	for _, n := range sizes {
+		if in == n {
+			return true
+		}
+	}
+	return false
+}
+
+func isValidKeyType(types []string, in string) bool {
+	for _, n := range types {
+		if in == n {
+			return true
+		}
+	}
+	return false
 }

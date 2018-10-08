@@ -165,6 +165,60 @@ func TestP11Token_ImportKey(t *testing.T) {
 	require.Nil(t, err)
 }
 
+func TestP11Token_GenerateKey(t *testing.T) {
+	mockCtrl, mockTokenCtx, session := prepMockForLogin(t)
+	defer mockCtrl.Finish()
+
+	const aesKeyLabel = "testaeskey256"
+	const rsaKeyLabel = "testrsakey2048"
+	const objectHandle = pkcs11.ObjectHandle(42)
+
+	///////////////// MOCK EXPECTATIONS /////////////////
+
+	mockTokenCtx.EXPECT().GenerateKey(session, []*pkcs11.Mechanism{pkcs11.NewMechanism(pkcs11.CKM_AES_KEY_GEN, make([]byte, 16))},
+		attributeMatcher{
+		[]*pkcs11.Attribute{
+			pkcs11.NewAttribute(pkcs11.CKA_TOKEN, true),
+			pkcs11.NewAttribute(pkcs11.CKA_SIGN, true),
+			pkcs11.NewAttribute(pkcs11.CKA_LABEL, aesKeyLabel),
+			pkcs11.NewAttribute(pkcs11.CKA_SENSITIVE, true),
+			pkcs11.NewAttribute(pkcs11.CKA_EXTRACTABLE, true),
+			pkcs11.NewAttribute(pkcs11.CKA_VALUE_LEN, 32),
+		}}).Return(objectHandle, nil)
+
+	mockTokenCtx.EXPECT().GenerateKeyPair(session, []*pkcs11.Mechanism{pkcs11.NewMechanism(pkcs11.CKM_RSA_PKCS_KEY_PAIR_GEN, nil)},
+		attributeMatcher{
+		[]*pkcs11.Attribute{
+			pkcs11.NewAttribute(pkcs11.CKA_CLASS, pkcs11.CKO_PUBLIC_KEY),
+			pkcs11.NewAttribute(pkcs11.CKA_KEY_TYPE, pkcs11.CKK_RSA),
+			pkcs11.NewAttribute(pkcs11.CKA_TOKEN, true),
+			pkcs11.NewAttribute(pkcs11.CKA_VERIFY, true),
+			pkcs11.NewAttribute(pkcs11.CKA_PUBLIC_EXPONENT, []byte{1, 0, 1}),
+			pkcs11.NewAttribute(pkcs11.CKA_LABEL, rsaKeyLabel + "pub"),
+			pkcs11.NewAttribute(pkcs11.CKA_MODULUS_BITS, 2048),
+		}},
+		attributeMatcher{
+		[]*pkcs11.Attribute{
+			pkcs11.NewAttribute(pkcs11.CKA_EXTRACTABLE, true),
+			pkcs11.NewAttribute(pkcs11.CKA_TOKEN, true),
+			pkcs11.NewAttribute(pkcs11.CKA_SENSITIVE, true),
+			pkcs11.NewAttribute(pkcs11.CKA_SIGN, true),
+			pkcs11.NewAttribute(pkcs11.CKA_LABEL, rsaKeyLabel + "prv"),
+		}}).Return(objectHandle, objectHandle, nil)
+
+
+	///////////////// START TEST /////////////////
+
+	p11Token, err := newP11Token(mockTokenCtx, tokenLabel, tokenPIN)
+	require.Nil(t, err)
+
+	err = p11Token.GenerateKey(aesKeyLabel, "AES", 256)
+	require.Nil(t, err)
+
+	err = p11Token.GenerateKey(rsaKeyLabel, "RSA", 2048)
+	require.Nil(t, err)
+}
+
 func TestP11Token_PrintObjectsWithLabel(t *testing.T) {
 	mockCtrl, mockTokenCtx, session := prepMockForLogin(t)
 	defer mockCtrl.Finish()

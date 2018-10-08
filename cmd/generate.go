@@ -45,14 +45,14 @@ func init() {
 
 func doGenerate(cmd *cobra.Command) {
 
-	var labelToUse *string
+	var labelToUse string
 	if cmd.Flags().Changed("label") {
-		labelToUse = &label
+		labelToUse = label
 	}
 
 	p11Token, err := p11.NewToken(p11Lib, p11TokenLabel, getPIN(cmd))
 	handleError(err)
 
 	defer p11Token.Finalise()
-	handleError(p11Token.GenerateKey(labelToUse, &keytype, keysize))
+	handleError(p11Token.GenerateKey(labelToUse, keytype, keysize))
 }

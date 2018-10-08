@@ -314,9 +314,7 @@ func (p *p11Token) GenerateKey(label, keytype string, keysize int) error {
 
 	validRSASize := []int{1024, 2048, 3072, 4096}
 	validAESSize := []int{128, 192, 256}
-	validKeyTypes := []string{"RSA", "AES"}
 
-	if (isValidKeyType(validKeyTypes, keytype)) {
 		switch keytype {
 		case "RSA":
 			if (isValidSize(validRSASize, keysize)) {
@@ -330,10 +328,10 @@ func (p *p11Token) GenerateKey(label, keytype string, keysize int) error {
 			} else {
 				return errors.Errorf("Invalid AES key size: %d", keysize)
 			}
+		default:
+			return errors.Errorf("Invalid key type: %s", keytype)
 		}
-	} else {
-		return errors.Errorf("Invalid key type: %s", keytype)
-	}
+
 
 
 	return nil
@@ -365,17 +363,13 @@ func (p *p11Token) GenerateAESKey(label string, keysize int) error {
 
 func (p *p11Token) GenerateRSAKey(label string, keysize int) error {
 
-	pubLabel := label + "pub"
-	prvLabel := label + "prv"
-
-	log.Print("Enter GenerateRSAKey" )
 	publicKeyTemplate := []*pkcs11.Attribute{
 		pkcs11.NewAttribute(pkcs11.CKA_CLASS, pkcs11.CKO_PUBLIC_KEY),
 		pkcs11.NewAttribute(pkcs11.CKA_KEY_TYPE, pkcs11.CKK_RSA),
 		pkcs11.NewAttribute(pkcs11.CKA_TOKEN, true),
 		pkcs11.NewAttribute(pkcs11.CKA_VERIFY, true),
 		pkcs11.NewAttribute(pkcs11.CKA_PUBLIC_EXPONENT, []byte{1, 0, 1}),
-		pkcs11.NewAttribute(pkcs11.CKA_LABEL, pubLabel),
+		pkcs11.NewAttribute(pkcs11.CKA_LABEL, label),
 		pkcs11.NewAttribute(pkcs11.CKA_MODULUS_BITS, keysize),
 	}
 
@@ -384,35 +378,24 @@ func (p *p11Token) GenerateRSAKey(label string, keysize int) error {
 		pkcs11.NewAttribute(pkcs11.CKA_TOKEN, true),
 		pkcs11.NewAttribute(pkcs11.CKA_SENSITIVE, true),
 		pkcs11.NewAttribute(pkcs11.CKA_SIGN, true),
-		pkcs11.NewAttribute(pkcs11.CKA_LABEL, prvLabel),
+		pkcs11.NewAttribute(pkcs11.CKA_LABEL, label),
 	}
 
-	log.Print("Set attributes" )
 	_, _,  err := p.ctx.GenerateKeyPair(p.session,
 		[]*pkcs11.Mechanism{pkcs11.NewMechanism(pkcs11.CKM_RSA_PKCS_KEY_PAIR_GEN, nil)},
 		publicKeyTemplate, privateKeyTemplate)
-	log.Print("Called GenerateKeyPair" )
 
 	if err != nil {
 		return err
 	}
 
-	log.Printf("Keypair \"%s\" and \"%s\" generated on token", pubLabel, prvLabel)
+	log.Printf("Keypair \"%s\" generated on token", label)
 
 	return nil
 }
 
 func isValidSize(sizes []int, in int) bool {
 	for _, n := range sizes {
-		if in == n {
-			return true
-		}
-	}
-	return false
-}
-
-func isValidKeyType(types []string, in string) bool {
-	for _, n := range types {
 		if in == n {
 			return true
 		}

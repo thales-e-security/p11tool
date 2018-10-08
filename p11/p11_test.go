@@ -194,7 +194,7 @@ func TestP11Token_GenerateKey(t *testing.T) {
 			pkcs11.NewAttribute(pkcs11.CKA_TOKEN, true),
 			pkcs11.NewAttribute(pkcs11.CKA_VERIFY, true),
 			pkcs11.NewAttribute(pkcs11.CKA_PUBLIC_EXPONENT, []byte{1, 0, 1}),
-			pkcs11.NewAttribute(pkcs11.CKA_LABEL, rsaKeyLabel + "pub"),
+			pkcs11.NewAttribute(pkcs11.CKA_LABEL, rsaKeyLabel),
 			pkcs11.NewAttribute(pkcs11.CKA_MODULUS_BITS, 2048),
 		}},
 		attributeMatcher{
@@ -203,7 +203,7 @@ func TestP11Token_GenerateKey(t *testing.T) {
 			pkcs11.NewAttribute(pkcs11.CKA_TOKEN, true),
 			pkcs11.NewAttribute(pkcs11.CKA_SENSITIVE, true),
 			pkcs11.NewAttribute(pkcs11.CKA_SIGN, true),
-			pkcs11.NewAttribute(pkcs11.CKA_LABEL, rsaKeyLabel + "prv"),
+			pkcs11.NewAttribute(pkcs11.CKA_LABEL, rsaKeyLabel),
 		}}).Return(objectHandle, objectHandle, nil)
 
 

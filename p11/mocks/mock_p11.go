@@ -155,6 +155,33 @@ func (mr *MockTokenCtxMockRecorder) FindObjectsInit(sh, temp interface{}) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindObjectsInit", reflect.TypeOf((*MockTokenCtx)(nil).FindObjectsInit), sh, temp)
 }
 
+// GenerateKey mocks base method
+func (m *MockTokenCtx) GenerateKey(sh pkcs11.SessionHandle, mech []*pkcs11.Mechanism, temp []*pkcs11.Attribute) (pkcs11.ObjectHandle, error) {
+	ret := m.ctrl.Call(m, "GenerateKey", sh, mech, temp)
+	ret0, _ := ret[0].(pkcs11.ObjectHandle)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GenerateKey indicates an expected call of GetAttributeValue
+func (mr *MockTokenCtxMockRecorder) GenerateKey(sh, mech, temp interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateKey", reflect.TypeOf((*MockTokenCtx)(nil).GenerateKey), sh, mech, temp)
+}
+
+// GenerateKeyPair mocks base method
+func (m *MockTokenCtx) GenerateKeyPair(sh pkcs11.SessionHandle, mech []*pkcs11.Mechanism, public, private []*pkcs11.Attribute) (pkcs11.ObjectHandle, pkcs11.ObjectHandle, error) {
+	ret := m.ctrl.Call(m, "GenerateKeyPair", sh, mech, public, private)
+	ret0, _ := ret[0].(pkcs11.ObjectHandle)
+	ret1, _ := ret[1].(pkcs11.ObjectHandle)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// GenerateKeyPair indicates an expected call of GetAttributeValue
+func (mr *MockTokenCtxMockRecorder) GenerateKeyPair(sh, mech, public, private interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateKeyPair", reflect.TypeOf((*MockTokenCtx)(nil).GenerateKeyPair), sh, mech, public, private)
+}
+
 // GetAttributeValue mocks base method
 func (m *MockTokenCtx) GetAttributeValue(sh pkcs11.SessionHandle, o pkcs11.ObjectHandle, a []*pkcs11.Attribute) ([]*pkcs11.Attribute, error) {
 	ret := m.ctrl.Call(m, "GetAttributeValue", sh, o, a)

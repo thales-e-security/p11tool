@@ -60,7 +60,7 @@ type Token interface {
 	PrintObjects(label *string) error
 
 	// GenerateKey creates a new RSA or AES key of the given size in the token
-	GenerateKey(label, keytype *string, keysize int) error
+	GenerateKey(label, keytype string, keysize int) error
 
 	// Finalise closes the library and unloads it.
 	Finalise() error
@@ -310,14 +310,14 @@ func (p *p11Token) PrintObjects(label *string) error {
 	return nil
 }
 
-func (p *p11Token) GenerateKey(label, keytype *string, keysize int) error {
+func (p *p11Token) GenerateKey(label, keytype string, keysize int) error {
 
 	validRSASize := []int{1024, 2048, 3072, 4096}
 	validAESSize := []int{128, 192, 256}
 	validKeyTypes := []string{"RSA", "AES"}
 
-	if (isValidKeyType(validKeyTypes, *keytype)) {
-		switch *keytype {
+	if (isValidKeyType(validKeyTypes, keytype)) {
+		switch keytype {
 		case "RSA":
 			if (isValidSize(validRSASize, keysize)) {
 				return p.GenerateRSAKey(label, keysize)
@@ -332,19 +332,19 @@ func (p *p11Token) GenerateKey(label, keytype *string, keysize int) error {
 			}
 		}
 	} else {
-		return errors.Errorf("Invalid key type: %s", *keytype)
+		return errors.Errorf("Invalid key type: %s", keytype)
 	}
 
 
 	return nil
 }
 
-func (p *p11Token) GenerateAESKey(label *string, keysize int) error {
+func (p *p11Token) GenerateAESKey(label string, keysize int) error {
 
 	privateKeyTemplate := []*pkcs11.Attribute{
 		pkcs11.NewAttribute(pkcs11.CKA_TOKEN, true),
 		pkcs11.NewAttribute(pkcs11.CKA_SIGN, true),
-		pkcs11.NewAttribute(pkcs11.CKA_LABEL, *label),
+		pkcs11.NewAttribute(pkcs11.CKA_LABEL, label),
 		pkcs11.NewAttribute(pkcs11.CKA_SENSITIVE, true),
 		pkcs11.NewAttribute(pkcs11.CKA_EXTRACTABLE, true),
 		pkcs11.NewAttribute(pkcs11.CKA_VALUE_LEN, keysize/8),
@@ -358,15 +358,15 @@ func (p *p11Token) GenerateAESKey(label *string, keysize int) error {
 		return err
 	}
 
-	log.Printf("Key \"%s\" generated on token", *label)
+	log.Printf("Key \"%s\" generated on token", label)
 
 	return nil
 }
 
-func (p *p11Token) GenerateRSAKey(label *string, keysize int) error {
+func (p *p11Token) GenerateRSAKey(label string, keysize int) error {
 
-	pubLabel := *label + "pub"
-	prvLabel := *label + "prv"
+	pubLabel := label + "pub"
+	prvLabel := label + "prv"
 
 	log.Print("Enter GenerateRSAKey" )
 	publicKeyTemplate := []*pkcs11.Attribute{

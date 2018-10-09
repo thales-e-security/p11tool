@@ -57,6 +57,6 @@ Contributions are very welcome. Either raise a pull request or open an issue to 
 of the things we'd like to add or improve:
 
 - [ ] Printing nested templates (i.e. `CKA_WRAP_TEMPLATE` and `CKA_UNWRAP_TEMPLATE`).
-- [ ] Generating test keys (at least RSA and AES).
+- [x] Generating test keys (at least RSA and AES).
 - [ ] Encryption, signing and verifying of test data using token keys.
 - [ ] Reading of library path, token name and PIN from a config file.

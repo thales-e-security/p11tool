@@ -23,18 +23,8 @@ generated keys, etc. (We wrote this tool to help with our own development projec
 
 ## Installation
 
-### Binaries
-
-Binaries are available from the [releases](releases) page.
-
-### Source installation
-
-`dep` is required to build p11tool. See https://github.com/golang/dep#installation.
-
 ```
-go get -d github.com/thales-e-security/p11tool
-dep ensure --vendor-only
-go install .
+go get -u github.com/thales-e-security/p11tool
 ```
 
 ## Usage

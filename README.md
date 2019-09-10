@@ -39,7 +39,15 @@ Supported functionality:
 - Calculate a checksum for an AES key.
 
 The token user PIN can be supplied as a command line argument or omitted, in which case it will be prompted for in the
-terminal. 
+terminal.
+
+### AWS CloudHSM
+
+CloudHSM produces a lot of noisy logs that make it impossible to read the outputs from p11tool. Here's how you can list the objects on a CloudHSM without seeing all the logs:
+
+```bash
+p11tool --lib /opt/cloudhsm/lib/libcloudhsm_pkcs11.so --pin <user>:<password> --token cavium list | grep -v "failed with error" | grep .
+```
 
 ## Contributions
 

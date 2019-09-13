@@ -34,6 +34,7 @@ Run `p11tool --help` to see available commands. Run `p11tool <command> --help` f
 Supported functionality:
 
 - Print the attributes of all objects on the token. Optionally restricted to objects with a given label.
+- Print all the mechanisms supported by a token.
 - Delete all objects from the token. Optionally retain objects with the specified label(s).
 - Import a plaintext AES key.
 - Calculate a checksum for an AES key.

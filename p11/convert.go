@@ -17,6 +17,7 @@ package p11
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/miekg/pkcs11"
 )
@@ -133,6 +134,14 @@ func keyTypeToString(keyType uint) (res string, err error) {
 		err = errors.New("Unrecognised")
 	}
 	return
+}
+
+func mechToStringAlways(mechType uint) string {
+	res, err := mechToString(mechType)
+	if err != nil {
+		return fmt.Sprintf("Unknown: %#x", mechType)
+	}
+	return res
 }
 
 func mechToString(mechType uint) (res string, err error) {

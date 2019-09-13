@@ -28,6 +28,7 @@ import (
 
 const tokenLabel = "someToken"
 const tokenPIN = "1234"
+const slotNumber uint = 42
 
 // prepMockForLogin creates a mock object that expects the usual method calls up to and including the
 // log in to the token. Callers to this method should immediately defer a call to controller.Finish().
@@ -35,7 +36,7 @@ func prepMockForLogin(t *testing.T) (*gomock.Controller, *mocks.MockTokenCtx, pk
 	mockCtrl := gomock.NewController(t)
 	mockTokenCtx := mocks.NewMockTokenCtx(mockCtrl)
 
-	slotList := []uint{42}
+	slotList := []uint{slotNumber}
 	session := pkcs11.SessionHandle(64)
 
 	// Setup
@@ -177,35 +178,34 @@ func TestP11Token_GenerateKey(t *testing.T) {
 
 	mockTokenCtx.EXPECT().GenerateKey(session, []*pkcs11.Mechanism{pkcs11.NewMechanism(pkcs11.CKM_AES_KEY_GEN, make([]byte, 16))},
 		attributeMatcher{
-		[]*pkcs11.Attribute{
-			pkcs11.NewAttribute(pkcs11.CKA_TOKEN, true),
-			pkcs11.NewAttribute(pkcs11.CKA_SIGN, true),
-			pkcs11.NewAttribute(pkcs11.CKA_LABEL, aesKeyLabel),
-			pkcs11.NewAttribute(pkcs11.CKA_SENSITIVE, true),
-			pkcs11.NewAttribute(pkcs11.CKA_EXTRACTABLE, true),
-			pkcs11.NewAttribute(pkcs11.CKA_VALUE_LEN, 32),
-		}}).Return(objectHandle, nil)
+			[]*pkcs11.Attribute{
+				pkcs11.NewAttribute(pkcs11.CKA_TOKEN, true),
+				pkcs11.NewAttribute(pkcs11.CKA_SIGN, true),
+				pkcs11.NewAttribute(pkcs11.CKA_LABEL, aesKeyLabel),
+				pkcs11.NewAttribute(pkcs11.CKA_SENSITIVE, true),
+				pkcs11.NewAttribute(pkcs11.CKA_EXTRACTABLE, true),
+				pkcs11.NewAttribute(pkcs11.CKA_VALUE_LEN, 32),
+			}}).Return(objectHandle, nil)
 
 	mockTokenCtx.EXPECT().GenerateKeyPair(session, []*pkcs11.Mechanism{pkcs11.NewMechanism(pkcs11.CKM_RSA_PKCS_KEY_PAIR_GEN, nil)},
 		attributeMatcher{
-		[]*pkcs11.Attribute{
-			pkcs11.NewAttribute(pkcs11.CKA_CLASS, pkcs11.CKO_PUBLIC_KEY),
-			pkcs11.NewAttribute(pkcs11.CKA_KEY_TYPE, pkcs11.CKK_RSA),
-			pkcs11.NewAttribute(pkcs11.CKA_TOKEN, true),
-			pkcs11.NewAttribute(pkcs11.CKA_VERIFY, true),
-			pkcs11.NewAttribute(pkcs11.CKA_PUBLIC_EXPONENT, []byte{1, 0, 1}),
-			pkcs11.NewAttribute(pkcs11.CKA_LABEL, rsaKeyLabel),
-			pkcs11.NewAttribute(pkcs11.CKA_MODULUS_BITS, 2048),
-		}},
+			[]*pkcs11.Attribute{
+				pkcs11.NewAttribute(pkcs11.CKA_CLASS, pkcs11.CKO_PUBLIC_KEY),
+				pkcs11.NewAttribute(pkcs11.CKA_KEY_TYPE, pkcs11.CKK_RSA),
+				pkcs11.NewAttribute(pkcs11.CKA_TOKEN, true),
+				pkcs11.NewAttribute(pkcs11.CKA_VERIFY, true),
+				pkcs11.NewAttribute(pkcs11.CKA_PUBLIC_EXPONENT, []byte{1, 0, 1}),
+				pkcs11.NewAttribute(pkcs11.CKA_LABEL, rsaKeyLabel),
+				pkcs11.NewAttribute(pkcs11.CKA_MODULUS_BITS, 2048),
+			}},
 		attributeMatcher{
-		[]*pkcs11.Attribute{
-			pkcs11.NewAttribute(pkcs11.CKA_EXTRACTABLE, true),
-			pkcs11.NewAttribute(pkcs11.CKA_TOKEN, true),
-			pkcs11.NewAttribute(pkcs11.CKA_SENSITIVE, true),
-			pkcs11.NewAttribute(pkcs11.CKA_SIGN, true),
-			pkcs11.NewAttribute(pkcs11.CKA_LABEL, rsaKeyLabel),
-		}}).Return(objectHandle, objectHandle, nil)
-
+			[]*pkcs11.Attribute{
+				pkcs11.NewAttribute(pkcs11.CKA_EXTRACTABLE, true),
+				pkcs11.NewAttribute(pkcs11.CKA_TOKEN, true),
+				pkcs11.NewAttribute(pkcs11.CKA_SENSITIVE, true),
+				pkcs11.NewAttribute(pkcs11.CKA_SIGN, true),
+				pkcs11.NewAttribute(pkcs11.CKA_LABEL, rsaKeyLabel),
+			}}).Return(objectHandle, objectHandle, nil)
 
 	///////////////// START TEST /////////////////
 
@@ -262,4 +262,29 @@ func TestP11Token_Finalise(t *testing.T) {
 
 	err = p11Token.Finalise()
 	require.Nil(t, err)
+}
+
+func TestP11Token_PrintMechanisms(t *testing.T) {
+	mockCtrl, mockTokenCtx, _ := prepMockForLogin(t)
+	defer mockCtrl.Finish()
+
+	mechs := []*pkcs11.Mechanism{pkcs11.NewMechanism(pkcs11.CKM_GENERIC_SECRET_KEY_GEN, nil),
+		pkcs11.NewMechanism(pkcs11.CKM_AES_CBC, nil), pkcs11.NewMechanism(pkcs11.CKM_RSA_PKCS_OAEP, nil)}
+
+	dummyInfo := pkcs11.MechanismInfo{}
+
+	mockTokenCtx.EXPECT().GetMechanismList(slotNumber).Return(mechs, nil)
+
+	// Should be called alphabetically
+	gomock.InOrder(
+		mockTokenCtx.EXPECT().GetMechanismInfo(slotNumber, []*pkcs11.Mechanism{mechs[1]}).Return(dummyInfo, nil),
+		mockTokenCtx.EXPECT().GetMechanismInfo(slotNumber, []*pkcs11.Mechanism{mechs[0]}).Return(dummyInfo, nil),
+		mockTokenCtx.EXPECT().GetMechanismInfo(slotNumber, []*pkcs11.Mechanism{mechs[2]}).Return(dummyInfo, nil),
+	)
+
+	p11Token, err := newP11Token(mockTokenCtx, tokenLabel, tokenPIN)
+	require.Nil(t, err)
+
+	err = p11Token.PrintMechanisms()
+	require.NoError(t, err)
 }

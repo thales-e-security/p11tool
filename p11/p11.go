@@ -16,7 +16,10 @@
 package p11
 
 import (
+	"fmt"
 	"log"
+	"sort"
+	"strings"
 
 	"github.com/miekg/pkcs11"
 	"github.com/pkg/errors"
@@ -42,6 +45,8 @@ type TokenCtx interface {
 	Initialize() error
 	Login(sh pkcs11.SessionHandle, userType uint, pin string) error
 	OpenSession(slotID uint, flags uint) (pkcs11.SessionHandle, error)
+	GetMechanismList(slotID uint) ([]*pkcs11.Mechanism, error)
+	GetMechanismInfo(slotID uint, m []*pkcs11.Mechanism) (pkcs11.MechanismInfo, error)
 }
 
 // Token provides a high level interface to a P11 token.
@@ -62,6 +67,9 @@ type Token interface {
 	// GenerateKey creates a new RSA or AES key of the given size in the token
 	GenerateKey(label, keytype string, keysize int) error
 
+	// PrintMechanisms prints mechanism info for all supported mechanisms.
+	PrintMechanisms() error
+
 	// Finalise closes the library and unloads it.
 	Finalise() error
 }
@@ -69,6 +77,7 @@ type Token interface {
 type p11Token struct {
 	ctx     TokenCtx
 	session pkcs11.SessionHandle
+	slot    uint
 }
 
 func (p *p11Token) DeleteAllExcept(keyLabels []string) error {
@@ -153,10 +162,11 @@ func newP11Token(ctx TokenCtx, tokenLabel, pin string) (Token, error) {
 		return nil, err
 	}
 
-	session, err := openUserSession(ctx, tokenLabel, pin)
+	session, slot, err := openUserSession(ctx, tokenLabel, pin)
 	return &p11Token{
 		ctx:     ctx,
 		session: session,
+		slot:    slot,
 	}, err
 }
 
@@ -208,7 +218,7 @@ func (p *p11Token) ImportKey(keyBytes []byte, label string) error {
 		pkcs11.NewAttribute(pkcs11.CKA_KEY_TYPE, pkcs11.CKK_AES),
 		pkcs11.NewAttribute(pkcs11.CKA_VALUE, keyBytes),
 		pkcs11.NewAttribute(pkcs11.CKA_UNWRAP, true),
-    pkcs11.NewAttribute(pkcs11.CKA_WRAP, true),
+		pkcs11.NewAttribute(pkcs11.CKA_WRAP, true),
 		pkcs11.NewAttribute(pkcs11.CKA_SENSITIVE, true),
 		pkcs11.NewAttribute(pkcs11.CKA_TOKEN, true),
 		pkcs11.NewAttribute(pkcs11.CKA_LABEL, label),
@@ -219,8 +229,7 @@ func (p *p11Token) ImportKey(keyBytes []byte, label string) error {
 }
 
 // openP11Session loads the P11 library and creates a logged in session
-func openUserSession(ctx TokenCtx, tokenLabel, pin string) (session pkcs11.SessionHandle, err error) {
-	var slot uint
+func openUserSession(ctx TokenCtx, tokenLabel, pin string) (session pkcs11.SessionHandle, slot uint, err error) {
 	slot, err = findSlotWithToken(ctx, tokenLabel)
 	if err != nil {
 		return
@@ -315,24 +324,22 @@ func (p *p11Token) GenerateKey(label, keytype string, keysize int) error {
 	validRSASize := []int{1024, 2048, 3072, 4096}
 	validAESSize := []int{128, 192, 256}
 
-		switch keytype {
-		case "RSA":
-			if (isValidSize(validRSASize, keysize)) {
-				return p.GenerateRSAKey(label, keysize)
-			} else {
-				return errors.Errorf("Invalid RSA key size: %d", keysize)
-			}
-		case "AES":
-			if (isValidSize(validAESSize, keysize)) {
-				return p.GenerateAESKey(label, keysize)
-			} else {
-				return errors.Errorf("Invalid AES key size: %d", keysize)
-			}
-		default:
-			return errors.Errorf("Invalid key type: %s", keytype)
+	switch keytype {
+	case "RSA":
+		if isValidSize(validRSASize, keysize) {
+			return p.GenerateRSAKey(label, keysize)
+		} else {
+			return errors.Errorf("Invalid RSA key size: %d", keysize)
 		}
-
-
+	case "AES":
+		if isValidSize(validAESSize, keysize) {
+			return p.GenerateAESKey(label, keysize)
+		} else {
+			return errors.Errorf("Invalid AES key size: %d", keysize)
+		}
+	default:
+		return errors.Errorf("Invalid key type: %s", keytype)
+	}
 
 	return nil
 }
@@ -381,7 +388,7 @@ func (p *p11Token) GenerateRSAKey(label string, keysize int) error {
 		pkcs11.NewAttribute(pkcs11.CKA_LABEL, label),
 	}
 
-	_, _,  err := p.ctx.GenerateKeyPair(p.session,
+	_, _, err := p.ctx.GenerateKeyPair(p.session,
 		[]*pkcs11.Mechanism{pkcs11.NewMechanism(pkcs11.CKM_RSA_PKCS_KEY_PAIR_GEN, nil)},
 		publicKeyTemplate, privateKeyTemplate)
 
@@ -390,6 +397,57 @@ func (p *p11Token) GenerateRSAKey(label string, keysize int) error {
 	}
 
 	log.Printf("Keypair \"%s\" generated on token", label)
+
+	return nil
+}
+
+func (p *p11Token) PrintMechanisms() error {
+	mechs, err := p.ctx.GetMechanismList(p.slot)
+	if err != nil {
+		return err
+	}
+
+	// Sort alphabetically by name
+	sort.Slice(mechs, func(i, j int) bool {
+		return strings.Compare(mechToStringAlways(mechs[i].Mechanism), mechToStringAlways(mechs[j].Mechanism)) < 0
+	})
+
+	for _, m := range mechs {
+		fmt.Println(mechToStringAlways(m.Mechanism))
+		info, err := p.ctx.GetMechanismInfo(p.slot, []*pkcs11.Mechanism{m})
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("  MinKeySize=%d, MaxKeySize=%d\n", info.MinKeySize, info.MaxKeySize)
+
+		possibleFlags := map[string]uint{
+			"CKF_HW":                pkcs11.CKF_HW,
+			"CKF_ENCRYPT":           pkcs11.CKF_ENCRYPT,
+			"CKF_DECRYPT":           pkcs11.CKF_DECRYPT,
+			"CKF_DIGEST":            pkcs11.CKF_DIGEST,
+			"CKF_SIGN":              pkcs11.CKF_SIGN,
+			"CKF_SIGN_RECOVER":      pkcs11.CKF_SIGN_RECOVER,
+			"CKF_VERIFY":            pkcs11.CKF_VERIFY,
+			"CKF_VERIFY_RECOVER":    pkcs11.CKF_VERIFY_RECOVER,
+			"CKF_GENERATE":          pkcs11.CKF_GENERATE,
+			"CKF_GENERATE_KEY_PAIR": pkcs11.CKF_GENERATE_KEY_PAIR,
+			"CKF_WRAP":              pkcs11.CKF_WRAP,
+			"CKF_UNWRAP":            pkcs11.CKF_UNWRAP,
+			"CKF_DERIVE":            pkcs11.CKF_DERIVE,
+		}
+
+		var flags []string
+
+		for name, value := range possibleFlags {
+			if (info.Flags & value) != 0 {
+				flags = append(flags, name)
+			}
+		}
+		sort.Strings(flags)
+
+		fmt.Printf("  Flags=%s\n", strings.Join(flags, ", "))
+	}
 
 	return nil
 }
